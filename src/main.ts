@@ -237,8 +237,7 @@ async function run(): Promise<void> {
   const apps = await getApps();
   core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
 
-  const output = await execCommand('pwd');
-  core.info(output.stdout);
+  core.info(__dirname);
 
   const diffs: Diff[] = [];
 
