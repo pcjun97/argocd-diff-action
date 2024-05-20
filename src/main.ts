@@ -24,8 +24,7 @@ interface AppSource {
 interface App {
   metadata: { name: string };
   spec: {
-    source?: AppSource;
-    sources?: AppSource[];
+    source: AppSource;
   };
   status: {
     sync: {
@@ -108,22 +107,9 @@ async function getApps(): Promise<App[]> {
     core.error(e);
   }
 
-  const apps = (responseJson.items as App[]).filter(app => {
-    if (app.spec.source) {
-      return isValidSource(app.spec.source);
-    }
-
-    if (app.spec.sources) {
-      for (const source of app.spec.sources) {
-        if (isValidSource(source)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    throw new Error(`can't find source or sources in app ${app.metadata.name}`);
-  });
+  const apps = (responseJson.items as App[]).filter(
+    app => app.spec.source !== undefined && isValidSource(app.spec.source)
+  );
 
   return apps;
 }
@@ -254,7 +240,7 @@ async function run(): Promise<void> {
   const diffs: Diff[] = [];
 
   await asyncForEach(apps, async app => {
-    const command = `app diff ${app.metadata.name} --revision ${github.context.ref}`;
+    const command = `app diff ${app.metadata.name} --server-side-generate --local=${app.spec.source.path}`;
     try {
       core.info(`Running: argocd ${command}`);
       // ArgoCD app diff will exit 1 if there is a diff, so always catch,

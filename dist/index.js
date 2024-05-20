@@ -1760,20 +1760,7 @@ function getApps() {
         catch (e) {
             core.error(e);
         }
-        const apps = responseJson.items.filter(app => {
-            if (app.spec.source) {
-                return isValidSource(app.spec.source);
-            }
-            if (app.spec.sources) {
-                for (const source of app.spec.sources) {
-                    if (isValidSource(source)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-            throw new Error(`can't find source or sources in app ${app.metadata.name}`);
-        });
+        const apps = responseJson.items.filter(app => app.spec.source !== undefined && isValidSource(app.spec.source));
         return apps;
     });
 }
@@ -1878,7 +1865,7 @@ function run() {
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
-            const command = `app diff ${app.metadata.name} --revision ${github.context.ref}`;
+            const command = `app diff ${app.metadata.name} --server-side-generate --local=${app.spec.source.path}`;
             try {
                 core.info(`Running: argocd ${command}`);
                 // ArgoCD app diff will exit 1 if there is a diff, so always catch,
