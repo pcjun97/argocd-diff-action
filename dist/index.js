@@ -1868,7 +1868,7 @@ function asyncForEach(array, callback) {
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const changedDirectories = new Set();
-        for (const f of CHANGED_FILES.split('\n')) {
+        for (const f of CHANGED_FILES.split(/\s+/)) {
             changedDirectories.add(path.dirname(f));
         }
         const argocd = yield setupArgoCDCommand();

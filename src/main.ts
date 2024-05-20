@@ -243,7 +243,7 @@ async function asyncForEach<T>(
 
 async function run(): Promise<void> {
   const changedDirectories = new Set<string>();
-  for (const f of CHANGED_FILES.split('\n')) {
+  for (const f of CHANGED_FILES.split(/\s+/)) {
     changedDirectories.add(path.dirname(f));
   }
 
