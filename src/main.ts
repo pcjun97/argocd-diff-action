@@ -13,16 +13,19 @@ interface ExecResult {
   stderr: string;
 }
 
+interface AppSource {
+  repoURL: string;
+  path: string;
+  targetRevision: string;
+  kustomize: Object;
+  helm: Object;
+}
+
 interface App {
   metadata: { name: string };
   spec: {
-    source: {
-      repoURL: string;
-      path: string;
-      targetRevision: string;
-      kustomize: Object;
-      helm: Object;
-    };
+    source?: AppSource;
+    sources?: AppSource[];
   };
   status: {
     sync: {
@@ -105,16 +108,33 @@ async function getApps(): Promise<App[]> {
     core.error(e);
   }
 
-  return (responseJson.items as App[]).filter(app => {
-    const targetRevision = app.spec.source.targetRevision;
-    const targetPrimary =
-      targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
-    return (
-      app.spec.source.repoURL.includes(
-        `${github.context.repo.owner}/${github.context.repo.repo}`
-      ) && targetPrimary
-    );
+  const apps = (responseJson.items as App[]).filter(app => {
+    if (app.spec.source) {
+      return isValidSource(app.spec.source);
+    }
+
+    if (app.spec.sources) {
+      for (const source of app.spec.sources) {
+        if (isValidSource(source)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    throw new Error(`can't find source or sources in app ${app.metadata.name}`);
   });
+
+  return apps;
+}
+
+function isValidSource(source: AppSource): boolean {
+  const targetRevision = source.targetRevision;
+  const targetPrimary = targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
+  return (
+    source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) &&
+    targetPrimary
+  );
 }
 
 interface Diff {
@@ -122,6 +142,7 @@ interface Diff {
   diff: string;
   error?: ExecResult;
 }
+
 async function postDiffComment(diffs: Diff[]): Promise<void> {
   let protocol = 'https';
   if (PLAINTEXT) {
@@ -233,7 +254,7 @@ async function run(): Promise<void> {
   const diffs: Diff[] = [];
 
   await asyncForEach(apps, async app => {
-    const command = `app diff ${app.metadata.name} --local=${app.spec.source.path}`;
+    const command = `app diff ${app.metadata.name} --revision ${github.context.ref}`;
     try {
       core.info(`Running: argocd ${command}`);
       // ArgoCD app diff will exit 1 if there is a diff, so always catch,

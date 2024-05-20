@@ -1760,12 +1760,28 @@ function getApps() {
         catch (e) {
             core.error(e);
         }
-        return responseJson.items.filter(app => {
-            const targetRevision = app.spec.source.targetRevision;
-            const targetPrimary = targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
-            return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && targetPrimary);
+        const apps = responseJson.items.filter(app => {
+            if (app.spec.source) {
+                return isValidSource(app.spec.source);
+            }
+            if (app.spec.sources) {
+                for (const source of app.spec.sources) {
+                    if (isValidSource(source)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            throw new Error(`can't find source or sources in app ${app.metadata.name}`);
         });
+        return apps;
     });
+}
+function isValidSource(source) {
+    const targetRevision = source.targetRevision;
+    const targetPrimary = targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
+    return (source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) &&
+        targetPrimary);
 }
 function postDiffComment(diffs) {
     var _a, _b, _c;
@@ -1862,7 +1878,7 @@ function run() {
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
-            const command = `app diff ${app.metadata.name} --local=${app.spec.source.path}`;
+            const command = `app diff ${app.metadata.name} --revision ${github.context.ref}`;
             try {
                 core.info(`Running: argocd ${command}`);
                 // ArgoCD app diff will exit 1 if there is a diff, so always catch,
