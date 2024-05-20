@@ -1865,8 +1865,7 @@ function run() {
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
-            const localPath = path.resolve(process.cwd(), app.spec.source.path);
-            const command = `app diff ${app.metadata.name} --server-side-generate --local=${localPath}`;
+            const command = `app diff ${app.metadata.name} --server-side-generate --local=${process.cwd()}`;
             try {
                 core.info(`Running: argocd ${command}`);
                 // ArgoCD app diff will exit 1 if there is a diff, so always catch,
