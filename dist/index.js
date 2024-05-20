@@ -1765,10 +1765,13 @@ function getApps() {
     });
 }
 function isValidSource(source) {
-    const targetRevision = source.targetRevision;
-    const targetPrimary = targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
-    return (source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) &&
-        targetPrimary);
+    if (!source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`)) {
+        return false;
+    }
+    if (!source.targetRevision) {
+        return false;
+    }
+    return ['HEAD', 'master', 'main'].includes(source.targetRevision);
 }
 function postDiffComment(diffs) {
     var _a, _b, _c;

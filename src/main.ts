@@ -115,12 +115,15 @@ async function getApps(): Promise<App[]> {
 }
 
 function isValidSource(source: AppSource): boolean {
-  const targetRevision = source.targetRevision;
-  const targetPrimary = targetRevision === 'master' || targetRevision === 'main' || !targetRevision;
-  return (
-    source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) &&
-    targetPrimary
-  );
+  if (!source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`)) {
+    return false;
+  }
+
+  if (!source.targetRevision) {
+    return false;
+  }
+
+  return ['HEAD', 'master', 'main'].includes(source.targetRevision);
 }
 
 interface Diff {
