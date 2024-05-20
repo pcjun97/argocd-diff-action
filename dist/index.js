@@ -1863,8 +1863,7 @@ function run() {
         const argocd = yield setupArgoCDCommand();
         const apps = yield getApps();
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
-        const output = yield execCommand('pwd');
-        core.info(output.stdout);
+        core.info(__dirname);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
             const command = `app diff ${app.metadata.name} --server-side-generate --local=${app.spec.source.path}`;
