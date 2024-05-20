@@ -29,6 +29,10 @@ inputs:
     description: Name of env to use in the diff title posted to the PR
     default: legacy
     required: false
+  changed-files:
+    description: List of files to with changes
+    default: ""
+    required: false
 runs:
   using: "node12"
   main: "dist/index.js"

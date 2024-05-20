@@ -46,6 +46,8 @@ if (PLAINTEXT) {
   EXTRA_CLI_ARGS += ' --plaintext';
 }
 
+const CHANGED_FILES = core.getInput('changed-files');
+
 const octokit = github.getOctokit(githubToken);
 
 async function execCommand(command: string, options: ExecOptions = {}): Promise<ExecResult> {
@@ -91,7 +93,7 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
-async function getApps(): Promise<App[]> {
+async function getApps(changedDirectories: string[]): Promise<App[]> {
   const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications`;
   core.info(`Fetching apps from: ${url}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,14 +110,18 @@ async function getApps(): Promise<App[]> {
   }
 
   const apps = (responseJson.items as App[]).filter(
-    app => app.spec.source !== undefined && isValidSource(app.spec.source)
+    app => app.spec.source !== undefined && isValidSource(app.spec.source, changedDirectories)
   );
 
   return apps;
 }
 
-function isValidSource(source: AppSource): boolean {
+function isValidSource(source: AppSource, changedDirectories: string[]): boolean {
   if (!source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`)) {
+    return false;
+  }
+
+  if (changedDirectories.length > 0 && !changedDirectories.includes(source.path)) {
     return false;
   }
 
@@ -236,8 +242,13 @@ async function asyncForEach<T>(
 }
 
 async function run(): Promise<void> {
+  const changedDirectories = new Set<string>();
+  for (const f of CHANGED_FILES.split('\n')) {
+    changedDirectories.add(path.dirname(f));
+  }
+
   const argocd = await setupArgoCDCommand();
-  const apps = await getApps();
+  const apps = await getApps(Array.from(changedDirectories));
   core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
 
   const diffs: Diff[] = [];

@@ -1704,6 +1704,7 @@ let EXTRA_CLI_ARGS = core.getInput('argocd-extra-cli-args');
 if (PLAINTEXT) {
     EXTRA_CLI_ARGS += ' --plaintext';
 }
+const CHANGED_FILES = core.getInput('changed-files');
 const octokit = github.getOctokit(githubToken);
 function execCommand(command, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -1743,7 +1744,7 @@ function setupArgoCDCommand() {
         });
     });
 }
-function getApps() {
+function getApps(changedDirectories) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications`;
         core.info(`Fetching apps from: ${url}`);
@@ -1760,12 +1761,15 @@ function getApps() {
         catch (e) {
             core.error(e);
         }
-        const apps = responseJson.items.filter(app => app.spec.source !== undefined && isValidSource(app.spec.source));
+        const apps = responseJson.items.filter(app => app.spec.source !== undefined && isValidSource(app.spec.source, changedDirectories));
         return apps;
     });
 }
-function isValidSource(source) {
+function isValidSource(source, changedDirectories) {
     if (!source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`)) {
+        return false;
+    }
+    if (changedDirectories.length > 0 && !changedDirectories.includes(source.path)) {
         return false;
     }
     if (!source.targetRevision) {
@@ -1863,8 +1867,12 @@ function asyncForEach(array, callback) {
 }
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
+        const changedDirectories = new Set();
+        for (const f of CHANGED_FILES.split('\n')) {
+            changedDirectories.add(path.dirname(f));
+        }
         const argocd = yield setupArgoCDCommand();
-        const apps = yield getApps();
+        const apps = yield getApps(Array.from(changedDirectories));
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
