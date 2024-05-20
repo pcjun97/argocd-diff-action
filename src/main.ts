@@ -249,6 +249,11 @@ async function run(): Promise<void> {
 
   const argocd = await setupArgoCDCommand();
   const apps = await getApps(Array.from(changedDirectories));
+  if (apps.length === 0) {
+    core.info('No apps found');
+    return;
+  }
+
   core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
 
   const diffs: Diff[] = [];

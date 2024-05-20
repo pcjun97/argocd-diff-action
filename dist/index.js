@@ -1873,6 +1873,10 @@ function run() {
         }
         const argocd = yield setupArgoCDCommand();
         const apps = yield getApps(Array.from(changedDirectories));
+        if (apps.length === 0) {
+            core.info('No apps found');
+            return;
+        }
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
