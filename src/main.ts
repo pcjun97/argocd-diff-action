@@ -5,6 +5,7 @@ import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
 import nodeFetch from 'node-fetch';
+import https from 'https';
 
 interface ExecResult {
   err?: Error | undefined;
@@ -89,18 +90,15 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
 }
 
 async function getApps(): Promise<App[]> {
-  let protocol = 'https';
-  if (PLAINTEXT) {
-    protocol = 'http';
-  }
-  const url = `${protocol}://${ARGOCD_SERVER_URL}/api/v1/applications`;
+  const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications`;
   core.info(`Fetching apps from: ${url}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let responseJson: any;
   try {
     const response = await nodeFetch(url, {
       method: 'GET',
-      headers: { Cookie: `argocd.token=${ARGOCD_TOKEN}` }
+      headers: { Cookie: `argocd.token=${ARGOCD_TOKEN}` },
+      agent: new https.Agent({ rejectUnauthorized: false })
     });
     responseJson = await response.json();
   } catch (e) {
