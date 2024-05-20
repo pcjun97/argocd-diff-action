@@ -240,8 +240,7 @@ async function run(): Promise<void> {
   const diffs: Diff[] = [];
 
   await asyncForEach(apps, async app => {
-    const localPath = path.resolve(process.cwd(), app.spec.source.path);
-    const command = `app diff ${app.metadata.name} --server-side-generate --local=${localPath}`;
+    const command = `app diff ${app.metadata.name} --server-side-generate --local=${process.cwd()}`;
     try {
       core.info(`Running: argocd ${command}`);
       // ArgoCD app diff will exit 1 if there is a diff, so always catch,
